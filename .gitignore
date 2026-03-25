@@ -15,6 +15,14 @@ build/
 *.dSYM/
 *.sdk/
 
+# Linux kernel module build outputs
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order
+
 # Xcode
 xcuserdata/
 *.xcworkspace/xcuserdata/

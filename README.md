@@ -120,11 +120,15 @@ For detailed information, see [macos/README.md](macos/README.md)
 
 1.  Clone and build:
     ```bash
-    git clone https://github.com/mischa85/snd-xonedb4
-    cd snd-xonedb4
-    sudo ./install_linux.sh
+    git clone https://github.com/mischa85/Ozzy
+    cd Ozzy/linux
+    make
+    sudo make install
     ```
-2.  That's it. We even reload the module for you.
+2.  Load the module:
+    ```bash
+    sudo modprobe snd-usb-ozzy
+    ```
 
 ---
 
@@ -136,7 +140,7 @@ If you are a developer or want to build the latest code, you **must** code-sign 
 cd linux
 make
 sudo make install
-sudo modprobe snd-xonedb4
+sudo modprobe snd-usb-ozzy
 ```
 
 **Uninstall:** Run `linux/uninstall.sh`
@@ -202,7 +206,10 @@ Ozzy provides a **clean, open-source example** of how to:
 
 ```
 Ozzy/
+├── common/         # Shared protocol code (platform-independent)
+│   └── devices/    # Device-specific protocol definitions and codecs
 ├── linux/          # Linux ALSA kernel module
+│   └── devices/    # Linux device-specific glue
 ├── macos/          # macOS kext + HAL/MIDI drivers
 │   ├── OzzyCore/   # Device-agnostic audio engine
 │   ├── Devices/    # Device-specific protocol implementations
@@ -228,8 +235,8 @@ Whether you need to support your own legacy hardware or understand how professio
 - Check Audio MIDI Setup app
 
 **Linux module issues?**
-- Check kernel logs: `dmesg | grep xonedb4`
-- Verify module loaded: `lsmod | grep snd_xonedb4`
+- Check kernel logs: `dmesg | grep ozzy`
+- Verify module loaded: `lsmod | grep snd_usb_ozzy`
 
 **Reporting Issues:**
 When filing a bug report, please include:
