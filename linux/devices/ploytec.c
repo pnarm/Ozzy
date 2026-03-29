@@ -255,8 +255,8 @@ static void ploytec_free(struct ozzy_chip *chip)
 
 /*
  * ploytec_set_rate - Set the hardware sample rate via vendor requests.
- * Converts the rate to 3 little-endian bytes on the stack and sends
- * the SET_CUR request sequence (5 messages to 3 endpoints).
+ * Converts the rate to 3 little-endian bytes and sends SET_CUR to both
+ * the input (0x86) and output (0x05) endpoints.
  */
 static int ploytec_set_rate(struct ozzy_chip *chip, unsigned int rate_index)
 {
@@ -272,33 +272,18 @@ static int ploytec_set_rate(struct ozzy_chip *chip, unsigned int rate_index)
 
 	ret = usb_control_msg(chip->dev, usb_sndctrlpipe(chip->dev, 0),
 			      PLOYTEC_CMD_SET_RATE_REQ, PLOYTEC_CMD_SET_RATE_TYPE,
-			      0x0100, 0x0086, priv->xfer_buf, 3, 2000);
+			      0x0100, PLOYTEC_EP_RATE_IN, priv->xfer_buf, 3, 2000);
 	if (ret < 0) return ret;
 
 	ret = usb_control_msg(chip->dev, usb_sndctrlpipe(chip->dev, 0),
 			      PLOYTEC_CMD_SET_RATE_REQ, PLOYTEC_CMD_SET_RATE_TYPE,
-			      0x0100, 0x0005, priv->xfer_buf, 3, 2000);
-	if (ret < 0) return ret;
-
-	ret = usb_control_msg(chip->dev, usb_sndctrlpipe(chip->dev, 0),
-			      PLOYTEC_CMD_SET_RATE_REQ, PLOYTEC_CMD_SET_RATE_TYPE,
-			      0x0100, 0x0086, priv->xfer_buf, 3, 2000);
-	if (ret < 0) return ret;
-
-	ret = usb_control_msg(chip->dev, usb_sndctrlpipe(chip->dev, 0),
-			      PLOYTEC_CMD_SET_RATE_REQ, PLOYTEC_CMD_SET_RATE_TYPE,
-			      0x0100, 0x0005, priv->xfer_buf, 3, 2000);
-	if (ret < 0) return ret;
-
-	ret = usb_control_msg(chip->dev, usb_sndctrlpipe(chip->dev, 0),
-			      PLOYTEC_CMD_SET_RATE_REQ, PLOYTEC_CMD_SET_RATE_TYPE,
-			      0x0100, 0x0086, priv->xfer_buf, 3, 2000);
+			      0x0100, PLOYTEC_EP_RATE_OUT, priv->xfer_buf, 3, 2000);
 	if (ret < 0) return ret;
 
 	chip->current_rate = rate_index;
 
 	ploytec_log(&chip->dev->dev,
-		    "sample rate set: %u Hz (raw: %02X %02X %02X, 5x SET_CUR to EP 0x86/0x05)\n",
+		    "sample rate set: %u Hz (raw: %02X %02X %02X)\n",
 		    rate, priv->xfer_buf[0], priv->xfer_buf[1], priv->xfer_buf[2]);
 
 	return 0;

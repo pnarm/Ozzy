@@ -45,13 +45,33 @@ bit 0x04 → digital lock (confirmed via (byte & 0x04) != 0; triggers re-read af
 ### Other bits
 
 ```
-0x08, 0x10, 0x20, 0x40, 0x80
+0x08  → unknown, device-dependent
+0x10  → StreamingArmed (from legacy driver naming). Set on powerup for both DB4 and DB2
+0x20  → LegacyActive / MODE5. Set by confirm write-back during handshake
+0x40  → unknown, device-dependent
+0x80  → NOT USB High Speed (see below). Hardware/chipset capability flag, differs between DB4 and DB2
 ```
 
 - Frequently masked/merged (`& 0xE7`, `& 0x4C`)
 - Device-dependent
 - Used to encode routing / timing class / hardware mode
 - For product 0x644: bits 3-4 (mask `0x18`) come from `this[0xd2]`, rest preserved with `& 0xE7`
+
+### Observed powerup values
+
+| Device | Status | Bits set | Notes |
+|--------|--------|----------|-------|
+| DB4 (fw 1.4.1) | 0x92 | 0x80 + 0x10 + 0x02 | After confirm → 0xB2 (adds 0x20) |
+| DB2 (from capture) | 0x12 | 0x10 + 0x02 | After confirm → 0x32 (adds 0x20) |
+
+Both devices are USB High Speed, yet only the DB4 has bit 7 (0x80) set. This means
+bit 7 is NOT "USB High Speed" as the legacy driver naming suggested — it's something
+internal to the Ploytec chipset that differs between DB4 and DB2 hardware. Possibly
+related to the effects engine, mixer capability, or a different hardware revision of
+the Ploytec chip.
+
+The `isPloytecBulkDevice` / `this[0x1888]` flag (USB 2.0 High Speed) is set based
+on the USB bus speed, NOT based on this status register bit. They are independent.
 
 ### When updateAjInputSelector is called (from Ghidra)
 

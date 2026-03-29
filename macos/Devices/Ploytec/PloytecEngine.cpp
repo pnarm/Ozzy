@@ -306,11 +306,7 @@ bool PloytecEngine::SetHardwareFrameRate(uint32_t r) {
     ploytec_encode_rate(r, buf);
 
     mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_IN, buf, 3);
-    mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_OUT, buf, 3);
-    mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_IN, buf, 3);
-    mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_OUT, buf, 3);
-
-    return mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_IN, buf, 3);
+    return mBus->VendorRequest(PLOYTEC_CMD_SET_RATE_TYPE, PLOYTEC_CMD_SET_RATE_REQ, 0x0100, PLOYTEC_EP_RATE_OUT, buf, 3);
 }
 
 bool PloytecEngine::WriteHardwareStatus(uint16_t v) {
