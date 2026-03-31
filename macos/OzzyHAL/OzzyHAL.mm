@@ -202,22 +202,23 @@ void OzzyHAL::MapSharedMemory() {
         mZeroTimestampPeriod = 2 * mFramesPerPacket * 4;
         
         // Set codec based on device (vendorID/productID)
+        bool isBulk = (mSHM->audio.deviceFlags & 1);
         if (mSHM->vendorID == PLOYTEC_VENDOR_ID) {
             mEncode = PloytecEncodePCM;
             mDecode = PloytecDecodePCM;
-            // Ploytec uses interrupt mode (for now)
-            mWriteOutput = PloytecWriteOutputInterrupt;
+            mWriteOutput = isBulk ? PloytecWriteOutputBulk : PloytecWriteOutputInterrupt;
             mReadInput = PloytecReadInput;
-            mClearOutput = PloytecClearOutputInterrupt;
-            LogOzzyHAL("using Ploytec codec for VID:0x%{public}04X", mSHM->vendorID);
+            mClearOutput = isBulk ? PloytecClearOutputBulk : PloytecClearOutputInterrupt;
+            LogOzzyHAL("using Ploytec codec (%{public}s) for VID:0x%{public}04X",
+                       isBulk ? "bulk" : "interrupt", mSHM->vendorID);
         } else {
-            // Default/fallback codec
             mEncode = PloytecEncodePCM;
             mDecode = PloytecDecodePCM;
-            mWriteOutput = PloytecWriteOutputInterrupt;
+            mWriteOutput = isBulk ? PloytecWriteOutputBulk : PloytecWriteOutputInterrupt;
             mReadInput = PloytecReadInput;
-            mClearOutput = PloytecClearOutputInterrupt;
-            LogOzzyHAL("using default codec for VID:0x%{public}04X", mSHM->vendorID);
+            mClearOutput = isBulk ? PloytecClearOutputBulk : PloytecClearOutputInterrupt;
+            LogOzzyHAL("using default codec (%{public}s) for VID:0x%{public}04X",
+                       isBulk ? "bulk" : "interrupt", mSHM->vendorID);
         }
     }
 }

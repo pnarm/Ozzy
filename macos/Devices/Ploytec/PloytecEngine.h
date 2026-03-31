@@ -18,9 +18,8 @@ class PloytecEngine : public OzzyEngine {
 public:
     PloytecEngine(uint16_t pid);
     
-    // Implement the new contract
     virtual const OzzyDeviceProfile& GetProfile() const override { return mProfile; }
-    
+    virtual void SetBulk(bool isBulk) override;
     virtual bool Start() override;
     virtual void Stop() override;
     virtual void OnPacketComplete(uint8_t pipeID, void* ctx, int status, uint32_t bytes) override;

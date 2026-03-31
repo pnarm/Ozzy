@@ -9,8 +9,6 @@
 #define kEpMidiIn   (PLOYTEC_EP_MIDI_IN | 0x80)
 
 PloytecEngine::PloytecEngine(uint16_t pid) {
-    mIsBulk = false;
-    mPacketSizeOut = mIsBulk ? PLOYTEC_BULK_OUT_PKT_SIZE : PLOYTEC_INT_OUT_PKT_SIZE;
 
     // --- Define Hardware Topology ---
     // The Xone:DB4 presents two interfaces:
@@ -32,6 +30,12 @@ PloytecEngine::PloytecEngine(uint16_t pid) {
     // MIDI In (EP 0x83) lives on Interface 0
     mProfile.midiIn.address = kEpMidiIn;
     mProfile.midiIn.interfaceIndex = 0;
+}
+
+void PloytecEngine::SetBulk(bool isBulk) {
+    mIsBulk = isBulk;
+    mPacketSizeOut = mIsBulk ? PLOYTEC_BULK_OUT_PKT_SIZE : PLOYTEC_INT_OUT_PKT_SIZE;
+    LogPloytec("transport: %s (out packet: %u bytes)", mIsBulk ? "bulk" : "interrupt", mPacketSizeOut);
 }
 
 bool PloytecEngine::Start() {

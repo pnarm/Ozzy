@@ -351,12 +351,12 @@ bool OzzyKext::ConfigureHardware() {
     if (foundCount != profile.interfaceCount) return false;
 
     int pipeCounter = 0;
-    OzzyPipeConfig* configs[] = { 
-        const_cast<OzzyPipeConfig*>(&profile.pcmOut), 
-        const_cast<OzzyPipeConfig*>(&profile.pcmIn), 
-        const_cast<OzzyPipeConfig*>(&profile.midiIn) 
+    OzzyPipeConfig* configs[] = {
+        const_cast<OzzyPipeConfig*>(&profile.pcmOut),
+        const_cast<OzzyPipeConfig*>(&profile.pcmIn),
+        const_cast<OzzyPipeConfig*>(&profile.midiIn)
     };
-    
+
     for (int k = 0; k < 3; k++) {
         OzzyPipeConfig* cfg = configs[k];
         if (cfg->address == 0) continue;
@@ -375,6 +375,15 @@ bool OzzyKext::ConfigureHardware() {
                 if (pipeCounter < kMaxPipes) {
                     mPipes[pipeCounter++] = p;
                     LogOzzyKext("  pipe 0x%02x opened", cfg->address);
+
+                    // Detect bulk vs interrupt from the output endpoint descriptor
+                    if (k == 0) {
+                        const StandardUSB::EndpointDescriptor* epDesc = p->getEndpointDescriptor();
+                        if (epDesc) {
+                            bool isBulk = (epDesc->bmAttributes & 0x03) == 0x02;
+                            mEngine->SetBulk(isBulk);
+                        }
+                    }
                 } else p->release();
             } else {
                 LogOzzyKext("  failed to open pipe 0x%02x", cfg->address);
