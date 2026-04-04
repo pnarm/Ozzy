@@ -134,16 +134,104 @@ For detailed information, see [macos/README.md](macos/README.md)
 
 ## 🏗️ Building from Source (The "Signing" Pain)
 
-If you are a developer or want to build the latest code, you **must** code-sign the binaries.
+If you are a developer or want to build the latest code, you **must** code-sign the macOS binaries.
 
+### 1. Get a Free Signing Identity
+You do not need a paid Apple Developer program membership ($99/yr). A free Apple ID works fine.
+1. Open **Xcode**.
+2. Go to **Settings (Cmd+,)** -> **Accounts**.
+3. Click the **`+`** button and add your Apple ID.
+4. Select your Personal Team.
+5. Click **Manage Certificates...**.
+6. Click the **`+`** in the bottom left and select **Apple Development**.
+7. Wait for it to say "Created". You now have a valid certificate in your Keychain.
+
+### 2. Build & Install
+Run the build script. It will auto-detect your new certificate:
 ```bash
-cd linux
-make
-sudo make install
-sudo modprobe snd-usb-ozzy
+./macos/install.command
 ```
 
-**Uninstall:** Run `linux/uninstall.sh`
+### 🔑 "0 valid identities found"
+
+This is the most common build error. It means `security find-identity -v -p codesigning` returns nothing, even though you added your account in Xcode. **This is an Apple Keychain/certificate chain-of-trust issue, not an Ozzy issue.** Work through the fixes below in order.
+
+> Apple's codesigning infrastructure has several long-standing pain points. The WWDR G1 intermediate certificate expired in February 2023 and broke codesigning for millions of developers — Xcode's automatic certificate management didn't handle the transition cleanly, and machines restored from backup or migrated via Time Machine still carry the expired cert. Keychain Access has a UX trap where right-clicking a certificate and choosing "Always Trust" (the natural instinct when you see a warning) silently adds a custom trust policy that makes `security find-identity` reject it — with no indication that you just broke codesigning. Free Apple Development certificates expire after one year with no notification outside of Xcode. And when things go wrong, the error messages are useless — "0 valid identities found" tells you nothing about *why*. This isn't going away; it's been like this since at least 2016.
+
+#### Diagnose First
+
+Open **Keychain Access**, find your **"Apple Development: [Your Name]"** certificate, and check:
+- Does it have a **disclosure triangle** (▶) next to it? If not, the **private key is missing** — see Fix 4.
+- Does it show a **red ✕** or say **"This certificate has an invalid issuer"**? The intermediate certificate is missing or expired — see Fix 2.
+- Does it say **"This certificate is marked as trusted for all users"**? You hit the trust trap — see Fix 1.
+
+You can also run a formal evaluation: select the certificate, then go to **Keychain Access > Certificate Assistant > Evaluate** and choose **Generic (certificate chain validation only)**. This will tell you exactly what's broken.
+
+#### Fix 1: The "Trust" Trap (Most Common)
+
+Did you (or someone troubleshooting) manually change the certificate trust settings in Keychain Access?
+
+1. Open **Keychain Access**.
+2. Find your **"Apple Development: [Your Name]"** certificate.
+3. Right-click -> **Get Info**.
+4. Expand the **Trust** section.
+5. **CRITICAL:** Set everything to **"Use System Defaults"**.
+
+If this was set to "Always Trust", macOS adds a custom trust policy that *breaks* the codesign toolchain. The certificate may *look* valid but `security find-identity` will reject it. It must stay on "System Defaults".
+
+#### Fix 2: Missing or Expired WWDR Intermediate Certificate
+
+Your signing certificate is issued by Apple's **Worldwide Developer Relations (WWDR)** intermediate authority. If that intermediate is missing, expired, or the wrong generation, macOS can't build the certificate chain and your identity becomes invisible.
+
+The old WWDR intermediate (G1) **expired February 7, 2023**. If you see it in your keychain with a red ✕, that's the problem.
+
+**To fix:**
+1. Open **Keychain Access** and enable **View > Show Expired Certificates**.
+2. Delete any expired **"Apple Worldwide Developer Relations Certification Authority"** entries.
+3. Download the current intermediates from [Apple's Certificate Authority page](https://www.apple.com/certificateauthority/). You need **WWDR G3** (for development certificates) — direct link:
+   ```bash
+   curl -O https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer
+   open AppleWWDRCAG3.cer
+   ```
+4. Double-click to install, or drag into Keychain Access under the **login** keychain.
+5. Verify: the certificate should show **"Expires: 2030"** and no red warnings.
+
+If you're on **Xcode 11.4.1 or later**, Xcode should download this automatically — but it often doesn't, especially after a clean macOS install or migration.
+
+#### Fix 3: Certificate Expired
+
+Signing certificates themselves expire (typically after 1 year for free Apple Development certificates).
+
+1. In Keychain Access, select your certificate and check the **Expires** field.
+2. If expired, delete it.
+3. Recreate via Xcode: **Settings > Accounts > Manage Certificates > + > Apple Development**.
+
+#### Fix 4: Missing Private Key
+
+A signing identity requires both the certificate AND its private key. If you migrated to a new Mac, restored from backup, or created the certificate on a different machine, the private key may not have come along.
+
+**How to check:** In Keychain Access, click the certificate. If there's a **disclosure triangle** (▶) and you can expand it to see a private key — you're fine. If there's no triangle, the private key is missing.
+
+**To fix:** You must delete the orphaned certificate and create a new one via Xcode (step 1 above). Private keys cannot be recovered — they can only be exported from the original machine.
+
+#### Fix 5: Nuclear Option — Start Fresh
+
+If nothing above works:
+1. In Keychain Access, delete ALL certificates containing "Apple Development" or "Developer ID" from both **login** and **System** keychains.
+2. Delete expired WWDR intermediates (see Fix 2).
+3. Download and install fresh WWDR G3 intermediate.
+4. Open **Xcode > Settings > Accounts**, remove and re-add your Apple ID.
+5. Click **Manage Certificates > + > Apple Development**.
+6. Verify: `security find-identity -v -p codesigning` should now show your identity.
+
+#### Further Reading
+- [Apple: Fixing an untrusted code signing certificate](https://developer.apple.com/forums/thread/712043)
+- [Apple: WWDR Intermediate Certificate Expiration](https://developer.apple.com/support/expiration/)
+- [Apple: Certificate Authority downloads](https://www.apple.com/certificateauthority/)
+- [StackOverflow: Code sign error - no identity found](https://stackoverflow.com/questions/15068617/code-sign-error-in-xcode-no-identity-found)
+- [StackOverflow: Could not find a valid private key/certificate pair](https://stackoverflow.com/questions/8424017/xcode-could-not-find-a-valid-private-key-certificate-pair-for-this-profile-in-yo)
+- [How to fix "no identity found" error in Xcode](https://sarunw.com/posts/how-to-fix-command-codesign-failed/)
+- [How to purge and re-install code signing identities](https://ohanaware.com/blog/202129/How-to-purge-and-re-install-code-signing-identities.html)
 
 ---
 
