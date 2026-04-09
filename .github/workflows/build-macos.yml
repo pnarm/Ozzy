@@ -1,0 +1,30 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build with Xcode
+      run: |
+        xcodebuild -project macos/Ozzy.xcodeproj -scheme Ozzy -configuration Release clean build
+
+    - name: Archive build output
+      run: |
+        mkdir -p output
+        cp -R build/Release/Ozzy.app output/
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Ozzy-macOS-app
+        path: output/Ozzy.app
